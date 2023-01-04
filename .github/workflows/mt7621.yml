@@ -22,7 +22,7 @@ on:
     branches:
       - "main"
     paths:
-      - 'config/.config'
+      - 'config/mt7621.config'
 
 env:
   REPO_URL: https://git.openwrt.org/openwrt/openwrt.git
@@ -33,10 +33,10 @@ env:
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
-  UPLOAD_FIRMWARE: true
-  UPLOAD_COWTRANSFER: false
-  UPLOAD_WETRANSFER: false
+  UPLOAD_FIRMWARE: false
   UPLOAD_RELEASE: false
+  UPLOAD_GITHUB: true
+  UPLOAD_GITEE: true
   TZ: Asia/Shanghai
 
 jobs:
@@ -123,6 +123,58 @@ jobs:
       if: (!cancelled())
       run: df -hT
 
+    - name: Set signature
+      if: steps.compile.outputs.status == 'success' && ! cancelled ()
+      run: |
+        cd $GITHUB_WORKSPACE/
+        touch secret.key
+        echo "${{ secrets.KEY }}" >> secret.key
+        chmod 777 $GITHUB_WORKSPACE/usign
+        ./usign -S -m $GITHUB_WORKSPACE/openwrt/bin/packages/*/base/Packages -s secret.key
+        ./usign -S -m $GITHUB_WORKSPACE/openwrt/bin/packages/*/freifunk/Packages -s secret.key
+        ./usign -S -m $GITHUB_WORKSPACE/openwrt/bin/packages/*/luci/Packages -s secret.key
+        ./usign -S -m $GITHUB_WORKSPACE/openwrt/bin/packages/*/packages/Packages -s secret.key
+        ./usign -S -m $GITHUB_WORKSPACE/openwrt/bin/packages/*/routing/Packages -s secret.key
+        ./usign -S -m $GITHUB_WORKSPACE/openwrt/bin/packages/*/telephony/Packages -s secret.key
+        ./usign -S -m $GITHUB_WORKSPACE/openwrt/bin/targets/*/*/packages/Packages -s secret.key
+
+    - name: Upload firmware to GitHub
+      if: env.UPLOAD_GITHUB == 'true' && steps.compile.outputs.status == 'success' && ! cancelled ()
+      run: |
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "github-actions"
+        git config --global http.postBuffer 524288000
+        git clone -b $REPO_BRANCH https://github.com/Gladtbam/OpenWRT_Action /opt/OpenWRT_Action
+        cd /opt/OpenWRT_Action
+        git remote rm origin
+        git remote add origin https://Gladtbam:${{ secrets.GITHUB_TOKEN }}@github.com/Gladtbam/OpenWRT_Action.git
+        git checkout $REPO_BRANCH
+        rm -rf /opt/OpenWRT_Action/packages && rm -rf /opt/OpenWRT_Action/targets
+        git add .
+        git commit -m "${{ env.FILE_DATE }}删除"
+        git push --set-upstream origin $REPO_BRANCH
+        cp -rf $GITHUB_WORKSPACE/openwrt/bin/* /opt/OpenWRT_Action/
+        git add .
+        git commit -m "${{ env.FILE_DATE }}提交"
+        git push --set-upstream origin $REPO_BRANCH
+
+    - name: Upload firmware to Gitee
+      if: env.UPLOAD_GITEE == 'true' && steps.compile.outputs.status == 'success' && ! cancelled ()
+      run: |
+        git clone -b $REPO_BRANCH https://gitee.com/sakura_bot/OpenWRT_Action.git /opt/OpenWRT_Action_fork
+        cd /opt/OpenWRT_Action_fork
+        git remote rm origin
+        git remote add origin https://sakura_bot:${{ secrets.GITEE_TOKEN }}@gitee.com/sakura_bot/OpenWRT_Action.git
+        git checkout $REPO_BRANCH
+        rm -rf /opt/OpenWRT_Action_fork/packages && rm -rf /opt/OpenWRT_Action_fork/targets
+        git add .
+        git commit -m "${{ env.FILE_DATE }}删除"
+        git push --set-upstream origin $REPO_BRANCH
+        cp -rf $GITHUB_WORKSPACE/openwrt/bin/* /opt/OpenWRT_Action_fork/
+        git add .
+        git commit -m "${{ env.FILE_DATE }}同步"
+        git push --set-upstream origin $REPO_BRANCH
+
     - name: Upload bin directory
       uses: actions/upload-artifact@main
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
@@ -148,32 +200,12 @@ jobs:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
-    - name: Upload firmware to cowtransfer
-      id: cowtransfer
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
-      run: |
-        curl -fsSL git.io/file-transfer | sh
-        ./transfer cow --block 2621440 -s -p 64 --no-progress ${FIRMWARE} 2>&1 | tee cowtransfer.log
-        echo "::notice file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
-        echo "url=$(cat cowtransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
-
-    - name: Upload firmware to WeTransfer
-      id: wetransfer
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true' && !cancelled()
-      run: |
-        curl -fsSL git.io/file-transfer | sh
-        ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
-        echo "::notice file=wetransfer.com::$(cat wetransfer.log | grep https)"
-        echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
-
     - name: Generate release tag
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
         echo "release_tag=${{ env.DEVICE_NAME }}" >> $GITHUB_OUTPUT
         touch release.txt
-        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
-        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload to release
