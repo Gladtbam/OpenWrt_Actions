@@ -9,3 +9,5 @@ src-git-full telephony https://git.openwrt.org/feed/telephony.git^1d2031a5c82816
 
 #src-git kenzo https://github.com/kenzok8/openwrt-packages
 #src-git small https://github.com/kenzok8/small
+
+src-git-full gladtbam https://github.com/Gladtbam/openwrt-packages.git
