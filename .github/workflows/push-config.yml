@@ -18,13 +18,18 @@ on:
         description: 'SSH connection to Actions'
         required: true
         default: 'false'
+      conf:
+        description: 'Config File Name'
+        required: true
+        default: .config
+        type: string
 
 env:
   REPO_URL: https://git.openwrt.org/openwrt/openwrt.git
   REPO_TAG: v22.03.2
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config
+  CONFIG_FILE: ${{ github.event.inputs.conf }}
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   TZ: Asia/Shanghai
@@ -101,8 +106,8 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        cp $GITHUB_WORKSPACE/openwrt/*.config $GITHUB_WORKSPACE/config/
-        git add GITHUB_WORKSPACE/config/*.config
+        cp $GITHUB_WORKSPACE/openwrt/.config $GITHUB_WORKSPACE/config/$CONFIG_FILE
+        git add $GITHUB_WORKSPACE/config/$CONFIG_FILE
         git commit -a -m "Update Config"
         
     - name: Push changes
