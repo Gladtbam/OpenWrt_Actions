@@ -18,6 +18,37 @@ on:
         description: 'SSH connection to Actions'
         required: false
         default: 'false'
+      conf:
+        description: 'Config File Name'
+        required: false
+        default: .config
+        type: string
+      upload-bin:
+        description: '上传 Bin 目录到 artifact'
+        required: false
+        default: 'false'
+        type: string
+      upload-firmware:
+        description: '上传 Firmware 目录到 artifact'
+        required: false
+        default: 'true'
+      upload-cow:
+        description: '上传到奶牛快传'
+        required: false
+        default: 'false'
+      upload-wet:
+        description: '上传到 WeTransfer'
+        required: false
+        default: 'false'
+      upload-release:
+        description: '上传到 Release'
+        required: false
+        default: 'false'
+      upload-dir:
+        description: '上传到云的目录'
+        required: false
+        default: firmware
+        type: string
   push:
     branches:
       - "main"
@@ -29,14 +60,15 @@ env:
   REPO_TAG: v22.03.2
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config
+  CONFIG_FILE: ${{ github.event.inputs.conf }}
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
-  UPLOAD_BIN_DIR: false
-  UPLOAD_FIRMWARE: true
-  UPLOAD_COWTRANSFER: false
-  UPLOAD_WETRANSFER: false
-  UPLOAD_RELEASE: false
+  UPLOAD_BIN_DIR: ${{ github.event.inputs.upload-bin }}
+  UPLOAD_FIRMWARE: ${{ github.event.inputs.upload-firmware }}
+  UPLOAD_COWTRANSFER: ${{ github.event.inputs.upload-cow }}
+  UPLOAD_WETRANSFER: ${{ github.event.inputs.upload-wet }}
+  UPLOAD_RELEASE: ${{ github.event.inputs.upload-release }}
+  UPLOAD_DIR: ${{ github.event.inputs.upload-dir }}
   TZ: Asia/Shanghai
 
 jobs:
@@ -153,7 +185,13 @@ jobs:
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
       run: |
         curl -fsSL git.io/file-transfer | sh
-        ./transfer cow --block 2621440 -s -p 64 --no-progress ${FIRMWARE} 2>&1 | tee cowtransfer.log
+        if [ "$UPLOAD_DIR" == 'bin' ]; then 
+          ./transfer cow --block 2621440 -s -p 64 --no-progress $GITHUB_WORKSPACE/OpenWrt_bin_${{ env.DEVICE_NAME }}.zip 2>&1 | tee cowtransfer.log;
+        elif [ "$UPLOAD_DIR" == 'firmware']; then 
+          ./transfer cow --block 2621440 -s -p 64 --no-progress $GITHUB_WORKSPACE/OpenWrt_firmware_${{ env.DEVICE_NAME }}.zip 2>&1 | tee cowtransfer.log;
+        else 
+          ./transfer cow --block 2621440 -s -p 64 --no-progress $GITHUB_WORKSPACE/OpenWrt_*_${{ env.DEVICE_NAME }}.zip 2>&1 | tee cowtransfer.log; 
+        fi
         echo "::notice file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
         echo "url=$(cat cowtransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
 
@@ -162,7 +200,13 @@ jobs:
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true' && !cancelled()
       run: |
         curl -fsSL git.io/file-transfer | sh
-        ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
+        if [ "$UPLOAD_DIR" == 'bin' ]; then 
+          ./transfer wet -s -p 16 --no-progress $GITHUB_WORKSPACE/OpenWrt_bin_${{ env.DEVICE_NAME }}.zip 2>&1 | tee wetransfer.log
+        elif [ "$UPLOAD_DIR" == 'firmware']; then 
+          ./transfer wet -s -p 16 --no-progress $GITHUB_WORKSPACE/OpenWrt_firmware_${{ env.DEVICE_NAME }}.zip 2>&1 | tee wetransfer.log
+        else 
+          ./transfer wet -s -p 16 --no-progress $GITHUB_WORKSPACE/OpenWrt_*_${{ env.DEVICE_NAME }}.zip 2>&1 | tee wetransfer.log 
+        fi
         echo "::notice file=wetransfer.com::$(cat wetransfer.log | grep https)"
         echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
 
