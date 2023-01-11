@@ -90,7 +90,15 @@ jobs:
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
+    - name: Cache
+      uses: actions/cache@main
+      id: cache
+      with:
+        path: openwrt/
+        key: OpenWrt-${{ env.FILE_DATE }}
+
     - name: Clone source code
+      if: steps.cache.outputs.cache-hit != 'true'
       working-directory: /workdir
       run: |
         df -hT $PWD
@@ -99,11 +107,17 @@ jobs:
         cd openwrt && git checkout $REPO_TAG
 
     - name: Load custom feeds
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
+
+    - name: Clean feeds
+      if: steps.cache.outputs.cache-hit = 'true'
+      run: |
+        cd openwrt && ./scripts/feeds clean
 
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
