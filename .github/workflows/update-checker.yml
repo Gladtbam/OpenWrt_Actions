@@ -40,11 +40,11 @@ jobs:
         cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds clean
         cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds update -a
         cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds install -a
-        [ -e config/$CONFIG_FILE ] && mv config/$CONFIG_FILE $GITHUB_WORKSPACE/openwrt/.config
-
+        
     - name: Compile toolchain
       run: |
         cd $GITHUB_WORKSPACE/openwrt
+        [ -e $GITHUB_WORKSPACE/config/$CONFIG_FILE ] && mv $GITHUB_WORKSPACE/config/$CONFIG_FILE $GITHUB_WORKSPACE/openwrt/.config
         make clean
         make defconfig
         make download -j$(nproc)
