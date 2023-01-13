@@ -33,18 +33,18 @@ jobs:
 
     - name: Pull Source
       run: |
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+        git clone --depth 1 $REPO_URL -b $REPO_BRANCH $GITHUB_WORKSPACE/openwrt
 
     - name: Scripts Feeds
       run: |
-        cd openwrt && ./scripts/feeds clean
-        cd openwrt && ./scripts/feeds update -a
-        cd openwrt && ./scripts/feeds install -a
-        [ -e config/$CONFIG_FILE ] && mv config/$CONFIG_FILE openwrt/.config
+        cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds clean
+        cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds update -a
+        cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds install -a
+        [ -e config/$CONFIG_FILE ] && mv config/$CONFIG_FILE $GITHUB_WORKSPACE/openwrt/.config
 
     - name: Compile toolchain
       run: |
-        cd openwrt
+        cd $GITHUB_WORKSPACE/openwrt
         make clean
         make defconfig
         make download -j$(nproc)
@@ -54,7 +54,7 @@ jobs:
     - name: Get Commit Hash
       id: getHash
       run: |
-        cd openwrt
+        cd $GITHUB_WORKSPACE/openwrt
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "commitHash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
