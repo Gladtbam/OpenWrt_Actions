@@ -13,7 +13,10 @@ name: Update Checker
 
 env:
   REPO_URL: https://git.openwrt.org/openwrt/openwrt.git
+  REPO_TAG: v22.03.2
   REPO_BRANCH: master
+  CONFIG_FILE: .config
+  TZ: Asia/Shanghai
 
 on:
   workflow_dispatch:
@@ -26,10 +29,36 @@ jobs:
 
     steps:
 
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Pull Source
+      run: |
+        git clone --depth 1 $REPO_URL -b $REPO_BRANCH $GITHUB_WORKSPACE/openwrt
+        cd openwrt && git checkout $REPO_TAG
+
+    - name: Scripts Feeds
+      run: |
+        cd openwrt && ./scripts/feeds clean
+        cd openwrt && ./scripts/feeds update -a
+        cd openwrt && ./scripts/feeds install -a
+        [ -e config/$CONFIG_FILE ] && mv config/$CONFIG_FILE openwrt/.config
+
+    - name: Compile toolchain
+      run: |
+        cd openwrt
+        make clean
+        make defconfig
+        make download -j$(nproc)
+        make tools/install
+        make toolchain/install
+
     - name: Get Commit Hash
       id: getHash
       run: |
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH .
+        cd openwrt
+        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "commitHash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
     - name: Compare Commit Hash
@@ -37,7 +66,7 @@ jobs:
       uses: actions/cache@main
       with:
         path: .commitHash
-        key: HEAD-${{ steps.getHash.outputs.commitHash }}
+        key: ${{ env.DEVICE_NAME }}-${{ steps.getHash.outputs.commitHash }}
 
     - name: Save New Commit Hash
       if: steps.cacheHash.outputs.cache-hit != 'true'
