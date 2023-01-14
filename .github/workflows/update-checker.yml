@@ -48,8 +48,8 @@ jobs:
         make clean
         make defconfig
         make download -j$(nproc)
-        make tools/install
-        make toolchain/install
+        make tools/install -j$(nproc)
+        make toolchain/install -j$(nproc)
 
     - name: Get Commit Hash
       id: getHash
@@ -63,20 +63,20 @@ jobs:
       id: cacheHash
       uses: actions/cache@main
       with:
-        path: .commitHash
+        path: $GITHUB_WORKSPACE/openwrt
         key: ${{ env.DEVICE_NAME }}-${{ steps.getHash.outputs.commitHash }}
 
-    - name: Save New Commit Hash
-      if: steps.cacheHash.outputs.cache-hit != 'true'
-      run: |
-        echo ${{ steps.getHash.outputs.commitHash }} | tee .commitHash
+#    - name: Save New Commit Hash
+#      if: steps.cacheHash.outputs.cache-hit != 'true'
+#      run: |
+#        echo ${{ steps.getHash.outputs.commitHash }} | tee .commitHash
 
-    - name: Trigger build
-      if: steps.cacheHash.outputs.cache-hit != 'true'
-      uses: peter-evans/repository-dispatch@main
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        event-type: Source Code Update
+#    - name: Trigger build
+#      if: steps.cacheHash.outputs.cache-hit != 'true'
+#      uses: peter-evans/repository-dispatch@main
+#      with:
+#        token: ${{ secrets.GITHUB_TOKEN }}
+#        event-type: Source Code Update
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
