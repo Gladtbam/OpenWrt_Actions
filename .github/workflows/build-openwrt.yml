@@ -52,7 +52,6 @@ on:
 
 env:
   REPO_URL: https://git.openwrt.org/openwrt/openwrt.git
-  REPO_TAG: v22.03.2
   REPO_BRANCH: openwrt-22.03	
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: ${{ github.event.inputs.conf }}
@@ -90,13 +89,6 @@ jobs:
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
-    - name: Cache
-      uses: actions/cache@main
-      id: cache
-      with:
-        path: openwrt/
-        key: OpenWrt-${{ env.FILE_DATE }}
-
     - name: Clone source code
       if: steps.cache.outputs.cache-hit != 'true'
       working-directory: /workdir
@@ -104,7 +96,6 @@ jobs:
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
-#        cd openwrt && git checkout $REPO_TAG
 
     - name: Load custom feeds
       if: steps.cache.outputs.cache-hit != 'true'
@@ -113,11 +104,6 @@ jobs:
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
-
-    - name: Clean feeds
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: |
-        cd openwrt && ./scripts/feeds clean
 
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
