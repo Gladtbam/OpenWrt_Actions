@@ -37,6 +37,7 @@ jobs:
 
     - name: Scripts Feeds
       run: |
+        echo "src-git kiddin9 https://github.com/Gladtbam/openwrt-packages.git" >> "feeds.conf.default"
         cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds clean
         cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds update -a
         cd $GITHUB_WORKSPACE/openwrt && ./scripts/feeds install -a
@@ -56,14 +57,14 @@ jobs:
       run: |
         cd $GITHUB_WORKSPACE/openwrt
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
-        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
+        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "commitHash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
     - name: Compare Commit Hash
       id: cacheHash
       uses: actions/cache@main
       with:
-        path: $GITHUB_WORKSPACE/openwrt
+        path: openwrt
         key: ${{ env.DEVICE_NAME }}-${{ steps.getHash.outputs.commitHash }}
 
 #    - name: Save New Commit Hash
