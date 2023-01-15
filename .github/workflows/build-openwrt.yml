@@ -103,7 +103,7 @@ jobs:
         path: /workdir
         key: ${{ env.DEVICE_NAME }}-${{ steps.getHash.outputs.commitHash }}
         restore-keys: |
-          ${{ env.DEVICE_NAME }}-
+          ${{ env.DEVICE_NAME }}-*
 
     - name: Clone source code
       if: steps.cache.outputs.cache-hit != 'true'

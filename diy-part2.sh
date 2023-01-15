@@ -12,3 +12,7 @@
 
 # Modify default IP
 #sed -i 's/192.168.1.1/192.168.50.5/g' package/base-files/files/bin/config_generate
+
+
+# 移除冲突的 Package
+./scripts/feeds uninstall luci-app-amlogic luci-app-turboacc shortcut-fe fast-classifier simulated-driver
