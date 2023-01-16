@@ -15,4 +15,4 @@
 
 
 # 移除冲突的 Package
-./scripts/feeds uninstall luci-app-amlogic luci-app-turboacc shortcut-fe fast-classifier simulated-driver
+./scripts/feeds uninstall luci-app-amlogic luci-app-turboacc shortcut-fe fast-classifier simulated-driver igb-intel
