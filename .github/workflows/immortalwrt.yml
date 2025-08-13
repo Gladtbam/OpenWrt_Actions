@@ -44,6 +44,12 @@ jobs:
         run: |
           sed -i 's/192.168.1.1/192.168.10.1/g' immortalwrt/package/base-files/files/bin/config_generate
 
+      - name: Configure Feeds 
+        run: |
+          cd immortalwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
       - name: Set Config
         run: |
           [ -e config/${{ github.event.inputs.config_file }} ] && cp config/${{ github.event.inputs.config_file }} immortalwrt/.config || exit 1
@@ -51,8 +57,6 @@ jobs:
       - name: Build ImmortalWRT
         run: |
           cd immortalwrt
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
           make defconfig
           make download -j$(nproc)
           make -j$(nproc)
