@@ -29,9 +29,9 @@ jobs:
         with:
           path: |
             immortalwrt/
-          key: immortalwrt-build
+          key: immortalwrt-build-${{ github.run_id }}
           restore-keys: |
-            immortalwrt-build
+            immortalwrt-build-
 
       - name: Checkout ImmortalWRT
         uses: actions/checkout@v5
