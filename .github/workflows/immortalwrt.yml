@@ -23,30 +23,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Cache
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            immortalwrt/
-          key: immortalwrt-build-${{ github.run_id }}
-          restore-keys: |
-            immortalwrt-build-
-
       - name: Checkout ImmortalWRT
         uses: actions/checkout@v5
-        if: steps.cache.outputs.cache-hit != 'true'
         with:
           repository: immortalwrt/immortalwrt
-          ref: openwrt-24.10
+          ref: openwrt-25.12
           fetch-depth: 1
           path: immortalwrt
-
-      - name: Pull ImmortalWRT
-        if: steps.cache.outputs.cache-hit == 'true'
-        run: |
-          cd immortalwrt
-          git pull
 
       - name: Set LAN IP
         if: steps.cache.outputs.cache-hit != 'true'
